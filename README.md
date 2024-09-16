@@ -29,13 +29,37 @@ Once you can get a distance from the camera, you can get the length (mm) per pix
 
 <br/>
 
-## Algorithm of the object detection
+## Algorithm of the region detection
+The region detection algorithm is a straightforward method that is simple but fast. The algorithm has 3 steps.
 
-coming soon...
+(1) Find a black point under the threshold
+![image](https://github.com/user-attachments/assets/1da91197-13e4-44c4-929a-e7bf728402b0)
+
+
+(2) Scan horizontally and vertically from the starting point calculated by the discovered black point and the window_h specified and search for the maximum count of consecutive black points.
+![image](https://github.com/user-attachments/assets/40ba37b6-6a63-4489-9326-6d8e220901d5)
+
+
+(3) To find the next region correctly, record the found regions and skip the area for the consequent process. 
+![image](https://github.com/user-attachments/assets/d51d5639-94cb-40ba-8cda-fb9b1a045f3f)
+
+
+By Spresense, this process takes under 104 milliseconds.
 
 ## System configuration
+The system is very simple. Here is the parts I used.
 
-coming soon...
+|Parts                        | Memo |
+|-----------------------------|--------|
+| Spresense Main Board        |   |
+| Spresense Extension Board   |   |
+| Spresense HDR Camera Board   |   |
+| HC-SR04                      | Ultrasonic distance sensor |
+| ILI9341 2.2inch           | TFT Display |
+
+
+![image](https://github.com/user-attachments/assets/4d0bd6dc-cb80-4644-9acd-726761be63fc)
+
 
 ## Software configuration
 ### maincore
