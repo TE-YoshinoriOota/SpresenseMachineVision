@@ -27,16 +27,17 @@ const int soniccore = 2;
 
 #define IMG_WIDTH   (320)
 #define IMG_HEIGHT  (240)
-//#define H_FOV  (41.8) /* spec typical value */
-//#define V_FOV  (31.2) /* spec typical value */
-#define H_FOV  (45.5)  /* adjustment value */
-#define V_FOV  (35.5)  /* adjustment value */
+#define H_FOV  (41.8) /* spec typical value */
+#define V_FOV  (31.2) /* spec typical value */
+//#define H_FOV  (45.5)  /* adjustment value */
+//#define V_FOV  (35.5)  /* adjustment value */
 // #define PRINT_DEBUG 
 
 uint32_t last_time = 0;
 uint8_t disp[IMG_WIDTH*IMG_HEIGHT];
 const float vFoV = 2*M_PI*(V_FOV/2)/360.0;
 const float hFoV = 2*M_PI*(H_FOV/2)/360.0;
+const float adjustment_mm = 7.0;
 
 struct det {
   bool exists;
@@ -103,10 +104,10 @@ void CamCB(CamImage img) {
     ave_dist += dist_data[n];
   } 
   ave_dist /= DIST_DATA_SIZE;
+  ave_dist += adjustment_mm;
 
-  const float adjustment_mm = 10.0;
-  float h_length_mm = (ave_dist + adjustment_mm)*h_tan_value;
-  float v_length_mm = (ave_dist + adjustment_mm)*v_tan_value;
+  float h_length_mm = ave_dist*h_tan_value;
+  float v_length_mm = ave_dist*v_tan_value;
   float h_mm_per_pixel = h_length_mm / 160.0; // mm/pixel
   float v_mm_per_pixel = v_length_mm / 120.0; // mm/pixel
 
@@ -135,7 +136,7 @@ void CamCB(CamImage img) {
   if (ret == 0) {
     memcpy(&disp[0], &buf[0], IMG_WIDTH*IMG_HEIGHT*sizeof(uint8_t));
     area.img = &disp[0];
-    area.distance = dist->distance;
+    area.distance = ave_dist;
     area.h_fov = hFoV;
     area.v_fov = vFoV;
     int8_t sndid1 = 100;
