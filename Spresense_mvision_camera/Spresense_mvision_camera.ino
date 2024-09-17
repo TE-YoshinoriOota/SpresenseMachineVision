@@ -27,9 +27,16 @@ const int soniccore = 2;
 
 #define IMG_WIDTH   (320)
 #define IMG_HEIGHT  (240)
+//#define H_FOV  (41.8) /* spec typical value */
+//#define V_FOV  (31.2) /* spec typical value */
+#define H_FOV  (45.5)  /* adjustment value */
+#define V_FOV  (35.5)  /* adjustment value */
+// #define PRINT_DEBUG 
 
 uint32_t last_time = 0;
 uint8_t disp[IMG_WIDTH*IMG_HEIGHT];
+const float vFoV = 2*M_PI*(V_FOV/2)/360.0;
+const float hFoV = 2*M_PI*(H_FOV/2)/360.0;
 
 struct det {
   bool exists;
@@ -45,6 +52,8 @@ struct region {
   struct det det[8];
   uint8_t *img;    
   float distance; 
+  float h_fov;
+  float v_fov;
 };
 
 struct region area;
@@ -63,7 +72,7 @@ float v_tan_value = 0.0;
 
 void CamCB(CamImage img) {
   int ret;
-  uint8_t *buf; // カメラ画像バッファ
+  uint8_t *buf; // buffer for the camera image
 
   if (!img.isAvailable()) return;
 
@@ -72,13 +81,12 @@ void CamCB(CamImage img) {
   last_time = current_time;
   Serial.println(String(duration) + " msec");
 
-  // 画像のモノクロ化
+  // get the grayscale image
   img.convertPixFormat(CAM_IMAGE_PIX_FMT_GRAY);
   buf = img.getImgBuff();
 
   memset(&area, 0, sizeof(struct region));
-  bool result = detect_objects(buf, IMG_WIDTH, IMG_HEIGHT, &area);
-
+  bool result = detect_objects(buf, 0, 0, IMG_WIDTH, IMG_HEIGHT, &area, 0);
 
   int8_t sndid2 = 110;
   uint32_t dummy = 0;
@@ -102,23 +110,34 @@ void CamCB(CamImage img) {
   float h_mm_per_pixel = h_length_mm / 160.0; // mm/pixel
   float v_mm_per_pixel = v_length_mm / 120.0; // mm/pixel
 
-  for (int n = 0; n < 8; ++n) {
-    if (area.det[n].exists) {
-      int sx = area.det[n].sx;
-      int sy = area.det[n].sy;
-      int width = area.det[n].width;
-      int height = area.det[n].height;
-      float x_mm = ((sx+width/2) - IMG_WIDTH/2)*h_mm_per_pixel;
-      float y_mm = (IMG_HEIGHT/2 - (sy+height/2))*v_mm_per_pixel;
+  if (result) {
+    for (int n = 0; n < 8; ++n) {
+      if (area.det[n].exists) {
+        int sx = area.det[n].sx;
+        int sy = area.det[n].sy;
+        int width = area.det[n].width;
+        int height = area.det[n].height;
+
+      #ifdef PRINT_DEBUG
+        Serial.println("area.det[" + String(n) + "].sx = " + String(sx));
+        Serial.println("area.det[" + String(n) + "].sy = " + String(sy));
+        Serial.println("area.det[" + String(n) + "].width = " + String(width));
+        Serial.println("area.det[" + String(n) + "].height = " + String(height));
+      #endif
+
+        area.det[n].x_mm = ((sx + width/2) - IMG_WIDTH/2)*h_mm_per_pixel;
+        area.det[n].y_mm = (IMG_HEIGHT/2 - (sy + height/2))*v_mm_per_pixel;
+      }
     }
   }
-
 
   ret = mutex.Trylock();
   if (ret == 0) {
     memcpy(&disp[0], &buf[0], IMG_WIDTH*IMG_HEIGHT*sizeof(uint8_t));
     area.img = &disp[0];
     area.distance = dist->distance;
+    area.h_fov = hFoV;
+    area.v_fov = vFoV;
     int8_t sndid1 = 100;
     MP.Send(sndid1, &area, dispcore);
     mutex.Unlock();
@@ -127,11 +146,11 @@ void CamCB(CamImage img) {
 
 
 void setup() {
-  static const float vFoV = 2*M_PI*(31.2/2)/360.0;
-  static const float hFoV = 2*M_PI*(41.8/2)/360.0;
+  Serial.begin(115200);
+
   v_tan_value = tan(vFoV);
   h_tan_value = tan(hFoV);
-  Serial.begin(115200);
+
   MP.begin(dispcore);
   MP.begin(soniccore);
   MP.RecvTimeout(MP_RECV_POLLING);

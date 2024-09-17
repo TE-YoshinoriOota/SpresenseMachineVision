@@ -29,17 +29,16 @@ struct region {
   struct det det[8];
   uint8_t *img;    
   float distance; 
-  float h_fov;
-  float v_fov;  
 };
 
 struct region *area;
 
 uint16_t img[IMG_WIDTH*IMG_HEIGHT];
+
 float h_tan_value = 0.0;
 float v_tan_value = 0.0;
 
-bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
+bool draw_box(uint16_t* buf, int sx, int sy, int w, int h) {
   const int thickness = 4; // BOXの線の太さ
   
   if (sx < 0 || sy < 0 || w < 0 || h < 0) { 
@@ -54,52 +53,21 @@ bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
   /* draw the horizontal line of the square */
   for (int j = sx; j < sx+w; ++j) {
     for (int n = 0; n < thickness; ++n) {
-      buf[(sy+n)*IMG_WIDTH + j] = ILI9341_BLUE;
-      buf[(sy+h-n)*IMG_WIDTH + j] = ILI9341_BLUE;
+      buf[(sy+n)*IMG_WIDTH + j] = ILI9341_RED;
+      buf[(sy+h-n)*IMG_WIDTH + j] = ILI9341_RED;
     }
   }
   /* draw the vertical line of the square */
   for (int i = sy; i < sy+h; ++i) {
     for (int n = 0; n < thickness; ++n) { 
-      buf[i*IMG_WIDTH+sx+n] = ILI9341_BLUE;
-      buf[i*IMG_WIDTH+sx+w-n] = ILI9341_BLUE;
+      buf[i*IMG_WIDTH+sx+n] = ILI9341_RED;
+      buf[i*IMG_WIDTH+sx+w-n] = ILI9341_RED;
     }
   }
-  /* draw the text area */
-  const int box_height = 16;
-  const int box_width = 30;
-  int start_y = sy+h+thickness;
-  int end_y = sy+h+thickness+box_height;
-  if (start_y > IMG_HEIGHT-20 || end_y > IMG_HEIGHT-20) {
-    return true; /* out of range, no operation just return */
-  }
-  int start_x = sx+w/2-box_width;
-  int end_x = sx+w/2+box_width;
-  if (start_x < 0 || end_x > IMG_WIDTH) {
-    return true; /* out of range, no operation just return */
-  }
-
-  for (int i = start_y; i < end_y; ++i) {
-    for (int j = start_x; j < end_x; ++j) {
-      buf[i*IMG_WIDTH + j] = ILI9341_BLACK;
-    }
-  }
-  
-  /* draw coordinate info */
-  display.setTextSize(1);
-  String str = String(x,0)+", "+String(y,0);
-  int len = str.length();
-  int cx = sx+w/2 - len/2*6;
-  if (cx < 0) cx = 0;  
-  display.setCursor(cx, start_y+4);
-  display.setTextColor(ILI9341_YELLOW);
-  display.println(str);  
   return true;
 }
 
 void draw_coordinate(uint16_t* buf, int thickness, float distance) {
-  const int tick_size = 10;
- 
   /* draw horizontal coordinate */
   for (int i = (IMG_HEIGHT-thickness)/2; i < (IMG_HEIGHT+thickness)/2; ++i) {
     for (int j = 0; j < IMG_WIDTH; ++j) {
@@ -107,6 +75,7 @@ void draw_coordinate(uint16_t* buf, int thickness, float distance) {
     }
   }
 
+  const int tick_size = 10;
   float half_width = distance*h_tan_value;
   float half_width_pix_per_mm = (IMG_WIDTH/2)/half_width;
   for (int n = 10; n < 150; n += 10) {
@@ -124,7 +93,6 @@ void draw_coordinate(uint16_t* buf, int thickness, float distance) {
       buf[i*IMG_WIDTH + j] = ILI9341_RED;
     }
   }
-
   float half_height = distance*v_tan_value;
   float half_height_pix_per_mm = (IMG_HEIGHT/2)/half_height;
   for (int n = 10; n < 100; n += 10) {
@@ -147,19 +115,12 @@ void draw_position(uint16_t *buf, int p_x, int p_y) {
   }
 }
 
-void draw_distance(float distance) {
-  display.fillRect(0, 220, 320, 240, ILI9341_BLACK);
-  String str = "Distance = " + String(distance,1) + " mm";
-  int len = str.length();
-  display.setTextSize(2);
-  int sx = 160 - len/2*12;
-  if (sx < 0) sx = 0;
-  display.setCursor(sx, 225);
-  display.setTextColor(ILI9341_YELLOW);
-  display.println(str);
-}
-
 void setup() {
+  static const float vFoV = 2*M_PI*(31.2/2)/360.0;
+  static const float hFoV = 2*M_PI*(41.8/2)/360.0;
+  v_tan_value = tan(vFoV);
+  h_tan_value = tan(hFoV);
+
   display.begin();
   display.setRotation(3);
 
@@ -169,6 +130,7 @@ void setup() {
 
 void loop() {
   int ret;
+  
   int8_t msgid;
   ret = MP.Recv(&msgid, &area);
   if (ret < 0) return;
@@ -176,10 +138,6 @@ void loop() {
   ret = mutex.Trylock();
   if (ret != 0) return;
 
-  float hFoV = area->h_fov;
-  float vFoV = area->v_fov;
-  v_tan_value = tan(vFoV);
-  h_tan_value = tan(hFoV); 
   for (int y = 0; y < IMG_HEIGHT; ++y) {
     for (int x = 0; x < IMG_WIDTH; ++x) {
       uint16_t value = area->img[y*IMG_WIDTH + x];
@@ -191,26 +149,22 @@ void loop() {
     }
   }
 
-  // draw x-y coordinate
-  draw_coordinate(&img[0], 3, area->distance);
 
-  // draw box on the image
+  // 認識対象のボックスをカメラ画像に描画
   for (int n = 0; n < 8; ++n) {
     if (area->det[n].exists) {
-      draw_box(&img[0], area->det[n].sx, area->det[n].sy, area->det[n].width, area->det[n].height, area->det[n].x_mm, area->det[n].y_mm); 
+      draw_box(&img[0], area->det[n].sx, area->det[n].sy, area->det[n].width, area->det[n].height); 
       draw_position(&img[n], area->det[n].sx+area->det[n].width/2, area->det[n].sy+area->det[n].height/2); 
     }
   }
-
-  // draw distance information on the image
-  draw_distance(area->distance);
+  draw_coordinate(&img[0], 3, area->distance);
   
   // ボックス描画されたカメラ画像を表示
-  display.drawRGBBitmap(0, 0, &img[0], IMG_WIDTH, IMG_HEIGHT-20);
+  display.drawRGBBitmap(0, 0, &img[0], IMG_WIDTH, IMG_HEIGHT);
   display.setCursor(0, 0);
   display.setTextColor(ILI9341_RED);
   display.setTextSize(2);  
-  // display.println("d = " + String(area->distance, 1) + " (" + String(area->det[0].x_mm, 1) + ", " + String(area->det[0].y_mm, 1) + ")");
+  display.println("d = " + String(area->distance, 1) + " (" + String(area->det[0].x_mm, 1) + ", " + String(area->det[0].y_mm, 1) + ")");
 
   mutex.Unlock();
 }
