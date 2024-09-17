@@ -47,7 +47,7 @@ The region detection algorithm is a straightforward method that is simple but fa
 By Spresense, this process takes under 104 milliseconds.
 
 ## System configuration
-The system is very simple. Here is the parts I used.
+The system is straightforward. Here are the parts I used.
 
 |Parts                        | Memo |
 |-----------------------------|--------|
@@ -61,7 +61,20 @@ The system is very simple. Here is the parts I used.
 ![image](https://github.com/user-attachments/assets/4d0bd6dc-cb80-4644-9acd-726761be63fc)
 
 
+Making a measurement software using HC-SR04 requires considering the gap between the ultrasonic sensor and the image sensor.
+In my case, the gap is almost 10mm by adjusting it through the camera.
+
+![image](https://github.com/user-attachments/assets/f34348db-cf89-4047-a37a-ac99f35c0d29)
+
+
+
 ## Software configuration
+The role of each core is as follows.
+
+![image](https://github.com/user-attachments/assets/b0459f23-e3f9-4796-9b0c-f1e38ba16589)
+
+
+
 ### maincore
 coming soon...
 
