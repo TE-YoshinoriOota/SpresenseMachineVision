@@ -1,5 +1,5 @@
 /*
- *  SimpleKalman.ino - kamlam filter based on local level model
+ *  SimpleKalman.ino - kalman filter based on local level model
  *  Copyright 2024 Sony Semiconductor Solutions Corporation
  *
  *  This library is free software; you can redistribute it and/or
