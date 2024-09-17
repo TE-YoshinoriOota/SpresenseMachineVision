@@ -29,15 +29,14 @@ const int soniccore = 2;
 #define IMG_HEIGHT  (240)
 #define H_FOV  (41.8) /* spec typical value */
 #define V_FOV  (31.2) /* spec typical value */
-//#define H_FOV  (45.5)  /* adjustment value */
-//#define V_FOV  (35.5)  /* adjustment value */
+
 // #define PRINT_DEBUG 
 
 uint32_t last_time = 0;
 uint8_t disp[IMG_WIDTH*IMG_HEIGHT];
 const float vFoV = 2*M_PI*(V_FOV/2)/360.0;
 const float hFoV = 2*M_PI*(H_FOV/2)/360.0;
-const float adjustment_mm = 7.0;
+const float adjustment_mm = 10.5;
 
 struct det {
   bool exists;
