@@ -1,6 +1,6 @@
 /*
  *  region_detect.ino - Region detect sample for the binary semantic segmentation sample
- *  Copyright 2022 Sony Semiconductor Solutions Corporation
+ *  Copyright 2024 Sony Semiconductor Solutions Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
