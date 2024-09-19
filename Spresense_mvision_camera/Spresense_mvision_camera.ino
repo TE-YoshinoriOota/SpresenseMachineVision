@@ -23,6 +23,10 @@
 #include <MPMutex.h>
 MPMutex mutex(MP_MUTEX_ID0);
 
+// Object recognition threshold value
+const uint8_t threshold = 70;
+
+// assignment of subcores
 const int dispcore = 1;
 const int soniccore = 2;
 
@@ -30,7 +34,8 @@ const int soniccore = 2;
 #define IMG_HEIGHT  (240)
 #define H_FOV  (41.8) /* spec typical value */
 #define V_FOV  (31.2) /* spec typical value */
-#define PRINT_DEBUG 
+#define AREA_MAX_NUM (8)
+// #define PRINT_DEBUG 
 
 uint32_t last_time = 0;
 uint8_t disp[IMG_WIDTH*IMG_HEIGHT];
@@ -39,21 +44,21 @@ const float hFoV = 2*M_PI*(H_FOV/2)/360.0;
 const float adjustment_mm = 10;
 
 struct det {
-  bool exists;
-  int16_t sx;
-  int16_t sy;
-  int16_t width;
-  int16_t height;
-  float x_mm;
-  float y_mm;
+  bool exists;  // detection area is valid or not
+  int16_t sx;   // the offset in x coordinate of this area
+  int16_t sy;   // the offset in y coordinate of this area
+  int16_t width;  // the width of this area
+  int16_t height; // the height of this area
+  float x_mm;  // the center position of this area from the center of the image
+  float y_mm;  // the center position of this area from the center of the image
 };
 
 struct region {
-  struct det det[8];
-  uint8_t *img;    
-  float distance; 
-  float h_fov;
-  float v_fov;
+  struct det det[AREA_MAX_NUM];  // array of the detected area
+  uint8_t *img;  // captured image in grayscale
+  float distance;  // the distance between the objects and the camera.
+  float h_fov;  // horizontal field of view of the camera
+  float v_fov;  // vertical field of view of the camera
 };
 
 struct region area;
@@ -64,8 +69,8 @@ struct sonicdata {
 };
 
 struct sonicdata *dist;
-#define DIST_DATA_SIZE 5
-float dist_data[DIST_DATA_SIZE];
+#define DIST_AVERAGE_SIZE 5
+float dist_data[DIST_AVERAGE_SIZE];
 
 float h_tan_value = 0.0;
 float v_tan_value = 0.0;
@@ -86,7 +91,7 @@ void CamCB(CamImage img) {
   buf = img.getImgBuff();
 
   memset(&area, 0, sizeof(struct region));
-  bool result = detect_objects(buf, 0, 0, IMG_WIDTH, IMG_HEIGHT, &area, 0);
+  bool result = detect_objects(buf, threshold, 0, 0, IMG_WIDTH, IMG_HEIGHT, &area, 0);
 
   int8_t sndid2 = 110;
   uint32_t dummy = 0;
@@ -96,13 +101,13 @@ void CamCB(CamImage img) {
     MP.Recv(&msgid, &dist, soniccore);
   }
   static int p = 0;
-  if (p >= DIST_DATA_SIZE) p = 0;
+  if (p >= DIST_AVERAGE_SIZE) p = 0;
   dist_data[p++] = dist->distance;
   float ave_dist = 0.0;
-  for (int n = 0; n < DIST_DATA_SIZE; ++n) {
+  for (int n = 0; n < DIST_AVERAGE_SIZE; ++n) {
     ave_dist += dist_data[n];
   } 
-  ave_dist /= DIST_DATA_SIZE;
+  ave_dist /= DIST_AVERAGE_SIZE;
   ave_dist += adjustment_mm;
 
   float h_length_mm = ave_dist*h_tan_value;

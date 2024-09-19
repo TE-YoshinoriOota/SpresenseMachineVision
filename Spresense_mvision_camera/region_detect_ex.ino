@@ -18,8 +18,7 @@
  */
 
 
-// Object recognition threshold value
-const uint8_t threshold = 70;
+
 
 // Window size for searching the area
 const int window_h = 60;
@@ -180,6 +179,7 @@ void inspection_area_generator(int y, int x, struct region* area, int num, int* 
  * Find the objects in the image data
  * Paramters:
  *   img: The grayscale image to analyze
+ *   threshold: threshold pixel value for region detection
  *   offset_x: Horizontal offset value of the image area to search
  *   offset_y: Vertical offset value of the image area to search
  *   win_width : Width of the image area to search
@@ -190,7 +190,7 @@ void inspection_area_generator(int y, int x, struct region* area, int num, int* 
  *   If the process is succeeded, return true
  *   If there are argument errors or calculation errors, return false.
  **/
-bool detect_objects(uint8_t* img, const int offset_x, const int offset_y, const int win_width, const int win_height, struct region* area, int num) {
+bool detect_objects(uint8_t* img, const uint8_t threshold, const int offset_x, const int offset_y, const int win_width, const int win_height, struct region* area, int num) {
 
 #ifdef PRINT_DEBUG
   Serial.println(String(__FUNCTION__) + "[" + String(num) + "] : " 
@@ -198,7 +198,7 @@ bool detect_objects(uint8_t* img, const int offset_x, const int offset_y, const 
       + String(win_width) + ", " + String(win_height) + " : Start");
 #endif
 
-  if (num >= 8) return true;
+  if (num >= AREA_MAX_NUM) return true;
 
   // 引数チェック
   if (img == NULL || area == NULL || win_width > IMG_WIDTH || win_height > IMG_HEIGHT) {
@@ -238,7 +238,7 @@ bool detect_objects(uint8_t* img, const int offset_x, const int offset_y, const 
             Serial.println("area.det[" + String(num) + "].height = " + String(height));  
             */  
             ++num;
-            return detect_objects(img, 0, sy, IMG_WIDTH, IMG_HEIGHT-sy, area, num);
+            return detect_objects(img, threshold, 0, sy, IMG_WIDTH, IMG_HEIGHT-sy, area, num);
           } else {
             // skip noise area
             x += width;  y += height;

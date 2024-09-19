@@ -299,7 +299,7 @@ void loop() {
   // draw distance information on the image
   draw_distance(&img[0], area->distance);
 
-  // ボックス描画されたカメラ画像を表示
+  // transfer the graphic buffer to LCD
   display.drawRGBBitmap(0, 0, &img[0], IMG_WIDTH, IMG_HEIGHT);
   mutex.Unlock();
 }
