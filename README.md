@@ -6,6 +6,17 @@ It is a straightforward method of image processing that detects dark areas. This
 
 ![image](https://github.com/user-attachments/assets/27331aab-aca9-4065-966f-0aa7f871d9a6)
 
+
+## Demonstration
+Here is the demo video of the Spresense Machine Vision
+As you can see the error rate is within ±2 mm when moving the object. It depends on the filter for the distance sensor.
+
+https://github.com/user-attachments/assets/7d264d08-e501-473b-bf36-7877316b1d1d
+
+
+<br/>
+<br/>
+
 ## Theory of the Machine Vision
 The key to understanding the measurement by a captured image is the knowledge of camera systems. Once you get a captured image by a camera, you cannot know the real length of objects only by the image itself. Converting a captured object's pixel length to the real world's length requires the lens characteristics of FOV (Field of View).
 
@@ -268,9 +279,6 @@ void loop() {
 }
 ```
 
-
-## Demonstration
-coming soon...
 
 
 
