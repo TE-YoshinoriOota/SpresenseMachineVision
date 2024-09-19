@@ -101,12 +101,14 @@ bool get_region(uint8_t *img,
  * to check whether the inspection area overlaps the detected area.
  * if the inspection area overlaps, return true and get the skip value of the x-coordinate.
  **/
-bool region_inspector(int i, int j, struct region* area, int num, int* skip) {
+bool region_inspector(int y, int x, struct region* area, int num, int* skip) {
   for (int n = 0; n < num; ++n) {
+    int area_det_sx = area->det[n].sx;
+    int area_det_sy = area->det[n].sy;
     int area_det_ex = area->det[n].sx + area->det[n].width;
     int area_det_ey = area->det[n].sy + area->det[n].height;
-    if (i >= area->det[n].sy && i < area_det_ey && j >= area->det[n].sx && j < area_det_ex) {
-      *skip = area_det_ex - j;
+    if (y >= area_det_sy && y < area_det_ey && x >= area_det_sx && x < area_det_ex) {
+      *skip = area_det_ex - x;
       return true;
     } 
   }
@@ -117,57 +119,59 @@ bool region_inspector(int i, int j, struct region* area, int num, int* skip) {
  * Function: inspection_area_generator
  * to get the offset position and the size of the inspection winodw considering the detected areas.
  **/
-void inspection_area_generator(int i, int j, struct region* area, int num, int* offset_x, int* offset_y, int* width, int* height) {
+void inspection_area_generator(int y, int x, struct region* area, int num, int* offset_x, int* offset_y, int* width, int* height) {
   // set the start point of vertical
-  *offset_y = i;
+  *offset_y = y;
   *height = window_v;
   if (*offset_y + *height > IMG_HEIGHT) *height = IMG_HEIGHT - *offset_y;
 
   // set the start point of horizontal 
   int win_length_right = window_h/2;
   int win_length_left = window_h/2;
-  *offset_x = j - win_length_left;
-  if (*offset_x < 0) { *offset_x = 0; win_length_left = j; }
-  if (j + win_length_right > IMG_WIDTH) { win_length_right = IMG_WIDTH - j; }
+  *offset_x = x - win_length_left;
+  if (*offset_x < 0) { *offset_x = 0; win_length_left = x; }
+  if (x + win_length_right > IMG_WIDTH) { win_length_right = IMG_WIDTH - x; }
   *width = win_length_left + win_length_right;
 
   // adjustment by area information not to overlap the horizontal area
   for (int n = 0; n < num; ++n) {
+    int area_det_sx = area->det[n].sx;
+    int area_det_sy = area->det[n].sy;
     int area_det_ex = area->det[n].sx + area->det[n].width;
     int area_det_ey = area->det[n].sy + area->det[n].height;
 
     // cehck left side overlap
-    if (*offset_y >= area->det[n].sy && *offset_y < area_det_ey && *offset_x < area_det_ex && *offset_x >= area->det[n].sx) {
+    if (*offset_y >= area_det_sy && *offset_y < area_det_ey && *offset_x < area_det_ex && *offset_x >= area_det_sx) {
       int end_width = *offset_x + *width;
       *offset_x = area_det_ex;
       *width = end_width - *offset_x;
       if (*width < 0) *width = 0;
-      return;
+      //return;
     }
 
+    
     // check right side overlap
-    if (*offset_y >= area->det[n].sy && *offset_y < area_det_ey && (*offset_x + *width) >= area->det[n].sx && (*offset_x + *width) < area_det_ex) {
-      *offset_x = area->det[n].sx - *width;
+    if (*offset_y >= area_det_sy && *offset_y < area_det_ey && (*offset_x + *width) >= area_det_sx && (*offset_x + *width) < area_det_ex) {
+      *offset_x = area_det_sx - *width;
       if (*offset_x < 0) *offset_x = 0;
-      if (*width > area->det[n].sx) *width = area->det[n].sx;
-      return;
+      if (*width > area_det_sx) *width = area_det_sx;
+      //return;
     } 
 
     // check top side overlap
-    if (*offset_y >= area->det[n].sy && *offset_y < area_det_ey && j >= area->det[n].sx && j < area_det_ex) {
+    if (*offset_y >= area_det_sy && *offset_y < area_det_ey && x >= area_det_ex && x < area_det_ex) {
       *offset_y = area_det_ey;
       if (*offset_y + *height > IMG_HEIGHT) *height = IMG_HEIGHT - *offset_y;
-      return;
+      //return;
     }
 
     // check bottom side overlap
-    if (*offset_y + *height >= area->det[n].sy && *offset_y + *height < area_det_ey && j >= area->det[n].sx && j < area_det_ex) {
-      *offset_y = area->det[n].sy - *width;
+    if (*offset_y + *height >= area_det_sy && *offset_y + *height < area_det_ey && x >=  area_det_ex && x < area_det_ex) {
+      *offset_y = area_det_sy - *height;
       if (*offset_y < 0) *offset_y = 0;
-      if (*height > area->det[n].sy) *height = area->det[n].sy;
-      return;
+      if (*height > area_det_sy) *height = area_det_sy;
+      //return;
     }
-
   }
 }
 
@@ -189,35 +193,39 @@ void inspection_area_generator(int i, int j, struct region* area, int num, int* 
 bool detect_objects(uint8_t* img, const int offset_x, const int offset_y, const int win_width, const int win_height, struct region* area, int num) {
 
 #ifdef PRINT_DEBUG
-  Serial.println(String(__FUNCTION__) + "[" + String(num) + "] : Start");
+  Serial.println(String(__FUNCTION__) + "[" + String(num) + "] : " 
+      + String(offset_x) + ", " + String(offset_y) + ", " 
+      + String(win_width) + ", " + String(win_height) + " : Start");
 #endif
 
   if (num >= 8) return true;
 
   // 引数チェック
   if (img == NULL || area == NULL || win_width > IMG_WIDTH || win_height > IMG_HEIGHT) {
-    Serial.println(String(__FUNCTION__) + ": param error");
+    Serial.println(String(__FUNCTION__) + "[" + String(num) + "] : " 
+        + String(offset_x) + ", " + String(offset_y) + ", " 
+        + String(win_width) + ", " + String(win_height) + " : param error");
     return false;
   }
 
-  for (int i = offset_y; i < win_height; ++i) {
-    for (int j = offset_x; j < win_width; ++j)  {
+  for (int y = offset_y; y < offset_y + win_height; ++y) {
+    for (int x = offset_x; x < offset_x + win_width; ++x)  {
 
-      if (img[i*IMG_WIDTH + j] < threshold) { // find black point
+      if (img[y*IMG_WIDTH + x] < threshold) { // find black point
         
         // check if the region is already inspected
         int skip = 0;
-        bool result = region_inspector(i, j, area, num, &skip);
-        if (result) { j += skip; continue; }
+        bool result = region_inspector(y, x, area, num, &skip);
+        if (result) { x += skip; continue; }
 
-        int win_offset_x, win_offset_y;
-        int win_width, win_height;
-        inspection_area_generator(i, j, area, num, &win_offset_x, &win_offset_y, &win_width, &win_height);
+        int gen_offset_x, gen_offset_y;
+        int gen_width, gen_height;
+        inspection_area_generator(y, x, area, num, &gen_offset_x, &gen_offset_y, &gen_width, &gen_height);
 
         int16_t sx, sy, width, height;
-        result = get_region(img, win_offset_x, win_offset_y, win_width, win_height, &sx, &width, &sy, &height);  
+        result = get_region(img, gen_offset_x, gen_offset_y, gen_width, gen_height, &sx, &width, &sy, &height);  
         if (result) {
-          if (width > object_min_size_h && height > object_min_size_v) {
+          if (width >= object_min_size_h && height >= object_min_size_v) {
             area->det[num].exists = true;
             area->det[num].sx = sx;
             area->det[num].width = width;
@@ -233,7 +241,7 @@ bool detect_objects(uint8_t* img, const int offset_x, const int offset_y, const 
             return detect_objects(img, 0, sy, IMG_WIDTH, IMG_HEIGHT-sy, area, num);
           } else {
             // skip noise area
-            j += width;  i += height;
+            x += width;  y += height;
           }
         }
       }

@@ -41,28 +41,3 @@ void kalman_update(KalmanFilter* kf, float z) {
     // Update error covariance
     kf->P = (1 - K) * P_pred;
 }
-
-/*
-int main() {
-    // カルマンフィルタの初期値を設定
-    KalmanFilter kf;
-    double init_x = 0.0;     // 初期状態
-    double init_P = 1.0;     // 初期誤差共分散
-    double process_noise = 1.0; // プロセスノイズの分散
-    double measurement_noise = 2.0; // 観測ノイズの分散
-
-    // カルマンフィルタの初期化
-    kalman_init(&kf, init_x, init_P, process_noise, measurement_noise);
-
-    // センサデータのシミュレーション
-    double measurements[5] = {1.0, 2.0, 3.0, 2.5, 3.5};
-
-    // 各観測値に対してカルマンフィルタを適用
-    for (int i = 0; i < 5; i++) {
-        kalman_update(&kf, measurements[i]);
-        printf("Time %d: Estimated state x = %f\n", i, kf.x);
-    }
-
-    return 0;
-}
-*/

@@ -1,5 +1,5 @@
 /*
- *  SubSonicn.ino - UltraSonic sensor (HC-SR04) controller
+ *  SubSonic.ino - UltraSonic sensor (HC-SR04) controller
  *  Copyright 2024 Sony Semiconductor Solutions Corporation
  *
  *  This library is free software; you can redistribute it and/or

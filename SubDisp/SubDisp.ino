@@ -91,44 +91,41 @@ void draw_char(uint16_t* buf, int16_t x, int16_t y, unsigned char c, uint16_t co
       if (line & 1) {
         if (size_x == 1 && size_y == 1) {
           buf[(y+j)*IMG_WIDTH + (x+i)] = color;
-          //writePixel(x+i, y+j, color)
         } else {
           draw_fillrect(buf, x+i*size_x, y+j*size_y, size_x, size_y, color);
-          // writeFillRect(x+i*size_x, y+j*size_y, size_x, size_y, color);
         }
       } else if (bg != color) {
         if (size_x == 1 && size_y == 1) {
           buf[(y+j)*IMG_WIDTH + (x+i)] = bg;
         } else {
           draw_fillrect(buf, x+i*size_x, y+j*size_y, size_x, size_y, bg);
-          // writeFillRect(x+i*size_x, y+j*size_y, size_x, size_y, bg);
         }
       }
     }
   }
+
   if (bg != color) { // If opaque, draw vertical line for last column
     if (size_x == 1 && size_y == 1) {
       for (int i = 0; i < 8; ++i) {
         if ((x+5+i) >= IMG_WIDTH) break;
         buf[y*IMG_WIDTH + (x+5+i)] = bg;
       }
-      // writeFastVLine(x+5, y, 8, bg);
     } else {
       if ((x+5*size_x + size_x) < IMG_WIDTH) { 
         draw_fillrect(buf, x+5*size_x, y, size_x, 8*size_y, bg);
       }
-      // writeFillRect(x+5*size_x, y, size_x, 8*size_y, bg);
     }
   }
 }
 
-bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
+void draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
   const int thickness = 4; // BOXの線の太さ
   
   if (sx < 0 || sy < 0 || w < 0 || h < 0) { 
     Serial.println("draw_box parameter error");
-    return false;
+    return;
   }
+
   if (sx+w >= IMG_WIDTH) 
     w = IMG_WIDTH-sx-1;
   if (sy+h >= IMG_HEIGHT) 
@@ -141,6 +138,7 @@ bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
       buf[(sy+h-n)*IMG_WIDTH + j] = ILI9341_BLUE;
     }
   }
+
   /* draw the vertical line of the square */
   for (int i = sy; i < sy+h; ++i) {
     for (int n = 0; n < thickness; ++n) { 
@@ -148,18 +146,19 @@ bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
       buf[i*IMG_WIDTH+sx+w-n] = ILI9341_BLUE;
     }
   }
+
   /* draw the text area */
   const int box_height = 16;
   const int box_width = 30;
   int start_y = sy+h+thickness;
   int end_y = sy+h+thickness+box_height;
   if (start_y > IMG_HEIGHT-20 || end_y > IMG_HEIGHT-20) {
-    return true; /* out of range, no operation just return */
+    return; /* out of range, no operation just return */
   }
   int start_x = sx+w/2-box_width;
   int end_x = sx+w/2+box_width;
   if (start_x < 0 || end_x > IMG_WIDTH) {
-    return true; /* out of range, no operation just return */
+    return; /* out of range, no operation just return */
   }
 
   for (int i = start_y; i < end_y; ++i) {
@@ -180,7 +179,7 @@ bool draw_box(uint16_t* buf, int sx, int sy, int w, int h, float x, float y) {
     char c = str.charAt(n);
     draw_char(buf, cx, start_y+4, c, ILI9341_YELLOW, ILI9341_BLACK, 1, 1);
   }
-  return true;
+  return;
 }
 
 void draw_coordinate(uint16_t* buf, int thickness, float distance) {
